@@ -10,11 +10,44 @@ async function checkHealth() {
     const res = await fetch(`${API_BASE}/health`);
     if (!res.ok) throw new Error();
     blip.classList.add("online");
+    blip.classList.remove("offline");
     text.textContent = "LINK ONLINE";
+    return true;
   } catch {
     blip.classList.add("offline");
+    blip.classList.remove("online");
     text.textContent = "LINK DOWN — RENDER MAY BE WAKING UP";
+    return false;
   }
+}
+
+async function wakeApi() {
+  const btn = el("wakeBtn");
+  btn.disabled = true;
+  btn.textContent = "WAKING…";
+
+  const isUp = await checkHealth();
+  if (isUp) {
+    btn.textContent = "WAKE API";
+    btn.disabled = false;
+    return;
+  }
+
+  const interval = setInterval(async () => {
+    const up = await checkHealth();
+    if (up) {
+      clearInterval(interval);
+      btn.textContent = "WAKE API";
+      btn.disabled = false;
+    }
+  }, 5000);
+
+  // stop trying after 2 minutes so the button doesn't stay stuck forever
+  setTimeout(() => {
+    clearInterval(interval);
+    btn.textContent = "WAKE API";
+    btn.disabled = false;
+  }, 120000);
 }
 
 // ---------- risk gauge ----------
@@ -139,6 +172,7 @@ el("scanForm").addEventListener("submit", (e) => {
 });
 
 el("refreshBoard").addEventListener("click", loadBoard);
+el("wakeBtn").addEventListener("click", wakeApi);
 
 checkHealth();
 loadBoard();
